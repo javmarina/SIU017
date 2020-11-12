@@ -1,4 +1,5 @@
 import requests
+from RobotModel import RobotModel
 
 
 class RobotHttpInterface:
@@ -6,12 +7,13 @@ class RobotHttpInterface:
     HTTP interface for controlling Girona 500 movement.
     """
 
-    def __init__(self, port: int, address="127.0.0.1"):
+    def __init__(self, robot_model: RobotModel, address="127.0.0.1"):
         """
         Create a HTTP robot controller.
-        :param port: controller port.
+        :param robot_model: model of the robot (see RobotModel enum for reference).
         :param address: controller address, which can be an URL or an IP address. Defaults to "127.0.0.1" (localhost).
         """
+        port = robot_model.get_controller_port()
         self._url_base = "http://" + address + ":" + str(port)
 
     def stop(self):

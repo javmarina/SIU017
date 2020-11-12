@@ -5,6 +5,7 @@ from tkinter import messagebox
 from PIL import ImageTk
 
 from ImagePipeline import ImagePipeline
+from RobotModel import RobotModel
 
 
 class Application(tk.Frame):
@@ -28,7 +29,7 @@ class Application(tk.Frame):
         self.quit.pack(side=tk.BOTTOM, pady=5)
 
         self.combobox = ttk.Combobox(self, state="readonly")
-        self.combobox["values"] = ["Girona 500 1", "Girona 500 2"]
+        self.combobox["values"] = [model.value for model in RobotModel]
         self.combobox.current(0)
         self.combobox.pack(side=tk.TOP, pady=5)
 
@@ -49,26 +50,19 @@ class Application(tk.Frame):
         index = self.combobox.current()
         if index >= 0:
             # Start streaming task
+            value = self.combobox.get()
+            robot_model = RobotModel(value)
             if self.pipeline:
                 self.pipeline.stop()
             self.pipeline = ImagePipeline(
                 address=self.ip_field.get(),
-                port=self.get_port(index+1),
+                robot_model=robot_model,
                 adq_rate=Application.fps)
             self.pipeline.start()
             self.task_id = self.image_canvas.after(ms=0, func=self._load_image)
         else:
             messagebox.showwarning(title="No Girona robot selected",
                                    message="Please select an item from the list")
-
-    @staticmethod
-    def get_port(girona_index):
-        if girona_index == 1:
-            return 8000
-        elif girona_index == 2:
-            return 8010
-        else:
-            raise ValueError("Invalid Girona 500 index: " + str(girona_index))
 
     def _load_image(self):
         frame = self.pipeline.get_last_frame()

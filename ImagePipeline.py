@@ -8,16 +8,17 @@ import numpy as np
 from pipeline.Pipeline import StraightPipeline
 from pipeline.PipelineStage import Producer, PipelineStage, Consumer
 from RobotHttpInterface import RobotHttpInterface
+from RobotModel import RobotModel
 
 
 class ImagePipeline(StraightPipeline):
-    def __init__(self, address, port, adq_rate):
+    def __init__(self, address, robot_model: RobotModel, adq_rate):
         super().__init__([
-            FiringStage(adq_rate, address, port+1),  # image port is robot port +1
+            FiringStage(adq_rate, address, robot_model),
             AdqStage(),
             ImageConversionStage(),
             ObjectDetectionStage(),
-            PositionControlStage(address, port)
+            PositionControlStage(address, robot_model)
         ])
 
     def get_last_frame(self):
@@ -25,7 +26,7 @@ class ImagePipeline(StraightPipeline):
 
 
 class FiringStage(Producer):
-    def __init__(self, adq_rate, address, port):
+    def __init__(self, adq_rate, address, robot_model: RobotModel):
         super().__init__()
         self._sleep_seconds = 1.0 / adq_rate
 
@@ -33,7 +34,7 @@ class FiringStage(Producer):
             self._address = "127.0.0.1"
         else:
             self._address = address
-        self._port = port
+        self._port = robot_model.get_camera_port()
 
     def _produce(self):
         time.sleep(self._sleep_seconds)
@@ -120,9 +121,9 @@ class PositionControlStage(Consumer):
     A2 = 5000
     v2 = 0.04
 
-    def __init__(self, address, port):
+    def __init__(self, address, robot_model: RobotModel):
         super().__init__()
-        self._http_interface = RobotHttpInterface(port, address)
+        self._http_interface = RobotHttpInterface(robot_model, address)
         self._z_velocity_computer = PositionControlStage.VelocityZComputer(
             A1=PositionControlStage.A1,
             A2=PositionControlStage.A2,
