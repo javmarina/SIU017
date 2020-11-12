@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import messagebox
 
 from PIL import ImageTk
 
@@ -47,22 +46,17 @@ class Application(tk.Frame):
         self.start_button.pack(side=tk.TOP, pady=5)
 
     def _start_streaming(self):
-        index = self.combobox.current()
-        if index >= 0:
-            # Start streaming task
-            value = self.combobox.get()
-            robot_model = RobotModel(value)
-            if self.pipeline:
-                self.pipeline.stop()
-            self.pipeline = ImagePipeline(
-                address=self.ip_field.get(),
-                robot_model=robot_model,
-                adq_rate=Application.fps)
-            self.pipeline.start()
-            self.task_id = self.image_canvas.after(ms=0, func=self._load_image)
-        else:
-            messagebox.showwarning(title="No Girona robot selected",
-                                   message="Please select an item from the list")
+        # Start streaming task
+        value = self.combobox.get()
+        robot_model = RobotModel(value)
+        if self.pipeline:
+            self.pipeline.stop()
+        self.pipeline = ImagePipeline(
+            address=self.ip_field.get(),
+            robot_model=robot_model,
+            adq_rate=Application.fps)
+        self.pipeline.start()
+        self.task_id = self.image_canvas.after(ms=0, func=self._load_image)
 
     def _load_image(self):
         frame = self.pipeline.get_last_frame()
