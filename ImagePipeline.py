@@ -104,10 +104,6 @@ class ObjectDetectionStage(PipelineStage):
         if len(higher_095) > 0:
             tube = max(higher_095, key=lambda tupl: tupl[1])[0]
 
-        # https://lengrand.fr/simple-region-growing-implementation-in-python/
-        # https://www.programmersought.com/article/81151779785/
-        # https://github.com/Panchamy/RegionGrowing/blob/master/RegionGrowing.py
-
         return img, tube
 
 
