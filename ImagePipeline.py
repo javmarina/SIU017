@@ -162,7 +162,7 @@ class PositionControlStage(Consumer):
 
             cv.putText(
                 img=img,
-                text=str(center),
+                text='({:.1f}, {:.1f})'.format(center[0], center[1]),
                 org=(x+w, y+h),
                 fontFace=cv.FONT_HERSHEY_SIMPLEX,
                 fontScale=0.6,
