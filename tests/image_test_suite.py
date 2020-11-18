@@ -11,53 +11,6 @@ def get_contour_eccentricity(contour):
     return np.sqrt(1-(ma/MA)**2)
 
 
-def detection(img: np.array):
-    hsv = cv.cvtColor(img, cv.COLOR_RGB2HSV)
-    hue = hsv[:, :, 0]
-    saturation = hsv[:, :, 1]
-    value = hsv[:, :, 2]
-
-    max_saturation = np.amax(saturation)
-    mask = saturation > (max_saturation-60)
-
-    bw = mask.astype(np.uint8) * 255
-    contours, _ = cv.findContours(bw, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-
-    mask2 = np.zeros(hue.shape, np.uint8)
-    cv.drawContours(mask2, contours, -1, 255, -1, 8)
-
-    kernel = np.ones((3, 3), np.uint8)
-    opening = cv.morphologyEx(mask2, cv.MORPH_OPEN, kernel)
-    dilation = cv.dilate(opening, kernel, iterations=2)
-    contours, _ = cv.findContours(dilation, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-
-    plt.imshow(dilation)
-    plt.show()
-
-    contours = [cnt for cnt in contours
-                if cnt.shape[0] > 10 and get_contour_eccentricity(cnt) >= 0.98]
-
-    if len(contours) == 1:
-        tube = contours[0]
-    else:
-        mask2 *= 0
-        diffs = []
-        for cnt in contours:
-            cv.drawContours(mask2, [cnt], -1, 255, -1)
-            mean = cv.mean(hue, mask=mask2)
-            diffs.append(np.abs(mean[0]-84))
-            mask2 *= 0
-        tube = contours[diffs.index(min(diffs))]
-    cv.drawContours(img, [tube], 0, (0, 255, 0), 4)
-
-    # for green_cnt, mean in green_contours:
-    #     x, y, w, h = cv.boundingRect(green_cnt)
-    #     cv.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    plt.imshow(img)
-    plt.show(block=True)
-    input()
-
-
 # def filter(orig: np.array, last_modified: np.array) -> np.array:
 #     return cv.GaussianBlur(last_modified, (17, 17), 0)
 
@@ -167,5 +120,3 @@ if __name__ == "__main__":
         imgs_transformed = [transform(imgs_np[i], imgs_transformed[i]) for i in range(len(imgs_np))]
         vpu.showInGrid(imgs_transformed, title=transform.__name__, subtitles=files)
     vpu.showInGrid(imgs_transformed, title="Imágenes procesadas")
-
-    #detection(img)
