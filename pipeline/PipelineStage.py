@@ -6,6 +6,7 @@ from utils.Averager import Averager
 
 # TODO: use multiprocessing module instead ?
 
+
 class PipelineStage(Thread):
     def __init__(self):
         super().__init__()
