@@ -82,7 +82,7 @@ class ObjectDetectionStage(PipelineStage):
         sat = hsv[:, :, 1]
         max_sat = np.max(sat)
         mean_sat = np.mean(sat)
-        th_sat = (max_sat + mean_sat) / 2 - 10
+        th_sat = (max_sat + mean_sat) / 2 - 15
         bw = cv.inRange(hsv, (10, th_sat, 0), (180, 255, 255))  # Remove H<30 means red color from lasers won't appear
 
         # Opening
@@ -94,8 +94,8 @@ class ObjectDetectionStage(PipelineStage):
         bw = cv.morphologyEx(bw, cv.MORPH_CLOSE, kernel)
 
         # Find & filter contours
-        contours, _ = cv.findContours(bw, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-        big_contours = filter(lambda cnt: cnt.shape[0] > 20, contours)
+        contours, _ = cv.findContours(bw, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
+        big_contours = filter(lambda cnt: cv.contourArea(cnt) > 200, contours)
         tuples = map(lambda cnt: (cnt, self._get_contour_eccentricity(cnt)), big_contours)
         higher_095 = list(filter(lambda tupl: tupl[1] >= 0.95, tuples))
 

@@ -36,7 +36,7 @@ def threshold_sat(orig: np.array, last_modified: np.array) -> np.array:
     sat = hsv[:, :, 1]
     max_sat = np.max(sat)
     mean_sat = np.mean(sat)
-    th_sat = (max_sat+mean_sat)/2 - 10
+    th_sat = (max_sat+mean_sat)/2 - 15
 
     # ret, th = cv.threshold(sat, th_sat, 255, cv.THRESH_BINARY)
     return cv.inRange(hsv, (10, th_sat, 0), (180, 255, 255))
@@ -80,15 +80,15 @@ def close(orig: np.array, last_modified: np.array) -> np.array:
 
 
 def remove_spurious_contours(orig: np.array, last_modified: np.array) -> np.array:
-    contours, _ = cv.findContours(last_modified, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-    contours = [cnt for cnt in contours if cnt.shape[0] > 20]
+    contours, _ = cv.findContours(last_modified, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
+    contours = [cnt for cnt in contours if cv.contourArea(cnt) > 200]
     mask = np.zeros(last_modified.shape, np.uint8)
     cv.drawContours(mask, contours, -1, 255, -1, 8)
     return mask
 
 
 def max_ecc(orig: np.array, last_modified: np.array) -> np.array:
-    contours, _ = cv.findContours(last_modified, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv.findContours(last_modified, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
     tuples = map(lambda cnt: (cnt, get_contour_eccentricity(cnt)), contours)
     higher_095 = list(filter(lambda tupl: tupl[1] >= 0.95, tuples))
 
