@@ -83,7 +83,7 @@ class ObjectDetectionStage(PipelineStage):
         max_sat = np.max(sat)
         mean_sat = np.mean(sat)
         th_sat = (max_sat + mean_sat) / 2 - 15
-        bw = cv.inRange(hsv, (10, th_sat, 0), (180, 255, 255))  # Remove H<30 means red color from lasers won't appear
+        bw = cv.inRange(hsv, (10, th_sat, 0), (180, 255, 255))  # Remove H<10 means red color from lasers won't appear
 
         # Opening
         kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
@@ -167,7 +167,6 @@ class PositionControlStage(Consumer):
                 color=(0, 255, 0),
                 thickness=1,
                 lineType=cv.LINE_AA)
-
 
             # center[0] selecciona la columna
             # center[1] selecciona la fila
