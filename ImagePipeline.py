@@ -119,6 +119,8 @@ class PositionControlStage(Consumer):
     A2 = 5000
     v2 = 0.04
 
+    compute_area_z_relationship = True
+
     def __init__(self, address, robot_model: RobotModel):
         super().__init__()
         self._http_interface = RobotHttpInterface(robot_model, address)
@@ -128,7 +130,8 @@ class PositionControlStage(Consumer):
             v1=PositionControlStage.v1,
             v2=PositionControlStage.v2
         )
-        self._area_z_list = []
+        if PositionControlStage.compute_area_z_relationship:
+            self._area_z_list = []
         self._stopped = False
 
     @staticmethod
@@ -153,7 +156,8 @@ class PositionControlStage(Consumer):
             angle = np.arctan2(-eig1[1], eig1[0])
             area = mat.shape[0]
 
-            self._area_z_list.append((area, self._http_interface.get_position()[2]))
+            if PositionControlStage.compute_area_z_relationship:
+                self._area_z_list.append((area, self._http_interface.get_position()[2]))
 
             x, y, w, h = cv.boundingRect(contour)
             cv.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
@@ -194,10 +198,14 @@ class PositionControlStage(Consumer):
         return Image.fromarray(img)
 
     def _on_stopped(self):
-        # import pickle
         self._http_interface.stop()
-        # with open("tests/area_z.p", "xb") as f:
-        #     pickle.dump(obj=self._area_z_list, file=f)
+        if PositionControlStage.compute_area_z_relationship:
+            import pickle, os
+            filename = "tests/area_z.p"
+            if os.path.exists(filename):
+                os.remove(filename)
+            with open(filename, "xb") as f:
+                pickle.dump(obj=self._area_z_list, file=f)
 
     class VelocityZComputer:
         def __init__(self, A1, A2, v1, v2):

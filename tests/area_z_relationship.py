@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if __name__ == "__main__":
-    list = None
     with open("area_z.p", "rb") as f:
         list = pickle.load(f)
 
