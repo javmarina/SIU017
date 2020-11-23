@@ -13,6 +13,10 @@ from RobotModel import RobotModel
 
 class ImagePipeline(StraightPipeline):
     def __init__(self, address, robot_model: RobotModel, adq_rate):
+        if address == "localhost":
+            # Avoid DNS resolve for localhost
+            # TODO: cache DNS resolution for other IPs?
+            address = "127.0.0.1"
         super().__init__([
             FiringStage(adq_rate, address, robot_model),
             AdqStage(),
@@ -29,11 +33,7 @@ class FiringStage(Producer):
     def __init__(self, adq_rate, address, robot_model: RobotModel):
         super().__init__()
         self._sleep_seconds = 1.0 / adq_rate
-
-        if address == "localhost":
-            self._address = "127.0.0.1"
-        else:
-            self._address = address
+        self._address = address
         self._port = robot_model.get_camera_port()
 
     def _produce(self):
