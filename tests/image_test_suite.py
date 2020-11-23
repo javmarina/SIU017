@@ -1,7 +1,6 @@
 from PIL import Image
 import numpy as np
 import cv2 as cv
-import matplotlib.pyplot as plt
 import glob
 import visualPercepUtils as vpu
 import os
