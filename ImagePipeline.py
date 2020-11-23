@@ -103,6 +103,8 @@ class ObjectDetectionStage(PipelineStage):
         tube = None
         if len(higher_095) > 0:
             tube = max(higher_095, key=lambda tupl: tupl[1])[0]
+            # Return convex hull, which should be more robust and use less memory
+            tube = cv.convexHull(tube)
 
         return img, tube
 

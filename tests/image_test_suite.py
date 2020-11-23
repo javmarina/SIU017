@@ -95,8 +95,9 @@ def max_ecc(orig: np.array, last_modified: np.array) -> np.array:
 
     mask = np.zeros(last_modified.shape, np.uint8)
     if len(higher_095) > 0:
-        max_ecc = max(higher_095, key=lambda tupl: tupl[1])
-        cv.drawContours(mask, [max_ecc[0]], -1, 255, -1, 8)
+        max_ecc = max(higher_095, key=lambda tupl: tupl[1])  # returns a tuple
+        max_ecc = cv.convexHull(max_ecc[0])
+        cv.drawContours(mask, [max_ecc], -1, 255, -1, 8)
     return mask
 
 
