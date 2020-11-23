@@ -4,6 +4,8 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import glob
 import visualPercepUtils as vpu
+import os
+import shutil
 
 
 def get_contour_eccentricity(contour):
@@ -108,7 +110,10 @@ if __name__ == "__main__":
         input_path = "tests/im-tests/"
         files = glob.glob(input_path + "test*.jpg")
 
-    transforms = [hue, threshold_sat, opening, close, remove_spurious_contours, max_ecc]
+    if os.path.exists('tests/im-tests/out/'):
+        shutil.rmtree('tests/im-tests/out/')
+
+    transforms = [saturation, threshold_sat, opening, close, remove_spurious_contours, max_ecc]
 
     imgs_pil = [Image.open(file) for file in files]
     imgs_np = [np.array(img_pil) for img_pil in imgs_pil]
@@ -116,7 +121,15 @@ if __name__ == "__main__":
 
     vpu.showInGrid(imgs_np, title="Imágenes originales", subtitles=files)
 
-    for transform in transforms:
+    for index in range(len(transforms)):
+        transform = transforms[index]
         imgs_transformed = [transform(imgs_np[i], imgs_transformed[i]) for i in range(len(imgs_np))]
         vpu.showInGrid(imgs_transformed, title=transform.__name__, subtitles=files)
+        for j in range(len(imgs_np)):
+            folder, filename = os.path.split(files[j])
+            folder += "/out/" + str(index+1) + "_" + transform.__name__
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            filename = os.path.splitext(filename)[0] + ".png"
+            Image.fromarray(imgs_transformed[j]).save(folder + "/" + filename)
     vpu.showInGrid(imgs_transformed, title="Imágenes procesadas")
