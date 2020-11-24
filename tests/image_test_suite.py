@@ -104,14 +104,15 @@ def max_ecc(orig: np.array, last_modified: np.array) -> np.array:
 if __name__ == "__main__":
     use_critical = True
     if use_critical:
-        files = ["tests/critical/critical" + str(num) + ".jpg"
+        input_path = "tests/critical/"
+        files = [input_path + "critical" + str(num) + ".jpg"
                  for num in [66, 71, 76, 77, 78, 80, 84, 85, 90, 101]]
     else:
         input_path = "tests/im-tests/"
         files = glob.glob(input_path + "test*.jpg")
 
-    if os.path.exists('tests/im-tests/out/'):
-        shutil.rmtree('tests/im-tests/out/')
+    if os.path.exists(input_path + "out/"):
+        shutil.rmtree(input_path + "out/")
 
     transforms = [saturation, threshold_sat, opening, close, remove_spurious_contours, max_ecc]
 
@@ -125,9 +126,10 @@ if __name__ == "__main__":
         transform = transforms[index]
         imgs_transformed = [transform(imgs_np[i], imgs_transformed[i]) for i in range(len(imgs_np))]
         vpu.showInGrid(imgs_transformed, title=transform.__name__, subtitles=files)
+
         for j in range(len(imgs_np)):
-            folder, filename = os.path.split(files[j])
-            folder += "/out/" + str(index+1) + "_" + transform.__name__
+            _, filename = os.path.split(files[j])
+            folder = input_path + "out/" + str(index+1) + "_" + transform.__name__
             if not os.path.exists(folder):
                 os.makedirs(folder)
             filename = os.path.splitext(filename)[0] + ".png"
