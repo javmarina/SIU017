@@ -102,7 +102,9 @@ def max_ecc(orig: np.array, last_modified: np.array) -> np.array:
 
 
 if __name__ == "__main__":
-    use_critical = True
+    use_critical = False
+    show_intermediate_figures = False
+
     if use_critical:
         input_path = "tests/critical/"
         files = [input_path + "critical" + str(num) + ".jpg"
@@ -125,7 +127,9 @@ if __name__ == "__main__":
     for index in range(len(transforms)):
         transform = transforms[index]
         imgs_transformed = [transform(imgs_np[i], imgs_transformed[i]) for i in range(len(imgs_np))]
-        vpu.showInGrid(imgs_transformed, title=transform.__name__, subtitles=files)
+
+        if show_intermediate_figures:
+            vpu.showInGrid(imgs_transformed, title=transform.__name__, subtitles=files)
 
         for j in range(len(imgs_np)):
             _, filename = os.path.split(files[j])
