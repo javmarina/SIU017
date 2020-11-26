@@ -34,13 +34,11 @@ class FiringStage(Producer):
     def __init__(self, adq_rate, address, robot_model: RobotModel):
         super().__init__()
         self._sleep_seconds = 1.0 / adq_rate
-        self._address = address
-        self._port = robot_model.get_camera_port()
+        self._url = "http://" + address + ":" + str(robot_model.get_camera_port())
 
     def _produce(self):
         time.sleep(self._sleep_seconds)
-        url = "http://" + self._address + ":" + str(self._port)
-        return url
+        return self._url
 
 
 class AdqStage(PipelineStage):
