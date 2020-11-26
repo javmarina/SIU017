@@ -1,6 +1,7 @@
-import numpy as np
 import math
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 '''
 Este archivo contiene utilidades para mostrar por pantalla los resultados (con matplotlib)

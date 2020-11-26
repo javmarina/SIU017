@@ -1,8 +1,9 @@
-from threading import Thread
-from queue import Queue, Empty
 import time
+from queue import Queue, Empty
+from threading import Thread
 
 from utils.Averager import Averager
+
 
 # TODO: use multiprocessing module instead ?
 

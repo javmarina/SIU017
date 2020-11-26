@@ -1,14 +1,15 @@
-import requests
-from PIL import Image
 import io
 import time
+
 import cv2 as cv
 import numpy as np
+import requests
+from PIL import Image
 
-from pipeline.Pipeline import StraightPipeline
-from pipeline.PipelineStage import Producer, PipelineStage, Consumer
 from RobotHttpInterface import RobotHttpInterface
 from RobotModel import RobotModel
+from pipeline.Pipeline import StraightPipeline
+from pipeline.PipelineStage import Producer, PipelineStage, Consumer
 
 
 class ImagePipeline(StraightPipeline):

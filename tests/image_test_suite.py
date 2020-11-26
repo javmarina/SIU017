@@ -1,10 +1,11 @@
-from PIL import Image
-import numpy as np
-import cv2 as cv
 import glob
-import visualPercepUtils as vpu
 import os
 import shutil
+
+import cv2 as cv
+import numpy as np
+import visualPercepUtils as vpu
+from PIL import Image
 
 
 def get_contour_eccentricity(contour):
