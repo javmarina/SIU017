@@ -96,10 +96,32 @@ def max_ecc(orig: np.array, last_modified: np.array) -> np.array:
 
     mask = np.zeros(last_modified.shape, np.uint8)
     if len(higher_095) > 0:
-        max_ecc = max(higher_095, key=lambda tupl: tupl[1])  # returns a tuple
-        max_ecc = cv.convexHull(max_ecc[0])
+        max_ecc = max(higher_095, key=lambda tupl: tupl[1])[0]  # returns a tuple
         cv.drawContours(mask, [max_ecc], -1, 255, -1, 8)
     return mask
+
+
+def convex_hull(orig: np.array, last_modified: np.array) -> np.array:
+    contours, _ = cv.findContours(last_modified, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
+    tube = cv.convexHull(contours[0])
+    mask = np.zeros(last_modified.shape, np.uint8)
+    cv.drawContours(mask, [tube], -1, 255, -1, 8)
+    return mask
+
+
+# Utility method
+def normalize(im: np.array) -> np.array:
+    """
+    Linear normalization
+    http://en.wikipedia.org/wiki/Normalization_%28image_processing%29
+    """
+    im = im.astype(np.float)
+    minval = np.min(im)
+    maxval = np.max(im)
+    if minval != maxval:
+        im -= minval
+        im *= (255.0/(maxval-minval))
+    return im.astype(np.uint8)
 
 
 if __name__ == "__main__":
@@ -117,7 +139,7 @@ if __name__ == "__main__":
     if os.path.exists(input_path + "out/"):
         shutil.rmtree(input_path + "out/")
 
-    transforms = [saturation, threshold_sat, opening, close, remove_spurious_contours, max_ecc]
+    transforms = [hue, saturation, threshold_sat, opening, close, remove_spurious_contours, max_ecc, convex_hull]
 
     imgs_pil = [Image.open(file) for file in files]
     imgs_np = [np.array(img_pil) for img_pil in imgs_pil]
@@ -137,6 +159,9 @@ if __name__ == "__main__":
             folder = input_path + "out/" + str(index+1) + "_" + transform.__name__
             if not os.path.exists(folder):
                 os.makedirs(folder)
-            filename = os.path.splitext(filename)[0] + ".png"
-            Image.fromarray(imgs_transformed[j]).save(folder + "/" + filename)
+            filename1 = os.path.splitext(filename)[0] + ".png"
+            filename2 = os.path.splitext(filename)[0] + "_normalized.png"
+            Image.fromarray(imgs_transformed[j]).save(folder + "/" + filename1)
+            Image.fromarray(normalize(imgs_transformed[j])).save(folder + "/" + filename2)
+
     vpu.showInGrid(imgs_transformed, title="Imágenes procesadas")
