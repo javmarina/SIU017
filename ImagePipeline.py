@@ -199,11 +199,13 @@ class PositionControlStage(Consumer):
     def _on_stopped(self):
         self._http_interface.stop()
         if PositionControlStage.compute_area_z_relationship:
-            import pickle, os
-            filename = "tests/area_z.p"
-            if os.path.exists(filename):
-                os.remove(filename)
-            with open(filename, "xb") as f:
+            import pickle
+            import os
+            current_dir = os.path.dirname(os.path.realpath(__file__))
+            path = os.path.join(current_dir, "tests", "area_z.p")
+            if os.path.exists(path):
+                os.remove(path)
+            with open(path, "xb") as f:
                 pickle.dump(obj=self._area_z_list, file=f)
 
     class VelocityZComputer:
