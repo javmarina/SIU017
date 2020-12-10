@@ -62,7 +62,7 @@ class Application(tk.Frame):
         frame = self.pipeline.get_last_frame()
         if frame:
             self._frame = ImageTk.PhotoImage(image=frame)  # prevent GC by setting it as an instance field
-            self.image_canvas.configure(width=frame.size[0], height=frame.size[1])
+            self.image_canvas.configure(width=frame.width, height=frame.height)
             self.image_canvas.create_image(0, 0, image=self._frame, anchor=tk.NW)
 
         # Reschedule
