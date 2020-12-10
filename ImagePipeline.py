@@ -140,6 +140,7 @@ class PositionControlStage(Consumer):
     def _consume(self, in_data):
         img, contour = in_data
         if contour is not None:
+            img = img.copy()
             width = img.shape[1]
             height = img.shape[0]
 
