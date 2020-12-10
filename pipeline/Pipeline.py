@@ -22,33 +22,36 @@ class Pipeline:
 
     def print_all_debug_info(self):
         self.print_avg_processing_times()
+        print()
         self.print_avg_wait_times()
+        print()
         self.print_avg_processing_capacity()
+        print()
         self.print_queue_sizes()
 
     def print_avg_processing_times(self):
         print("Average processing time for every pipeline stage")
-        for i in range(len(self._stages)):
-            stage = self._stages[i]
-            print(f"Stage {i}, type {type(stage)}:", 1000*stage.get_avg_processing_time(), "ms")
+        for i, stage in enumerate(self._stages):
+            print("Stage {:d} ({:s}): {:.2f} ms"
+                  .format(i, type(stage).__name__, 1000 * stage.get_avg_processing_time()))
 
     def print_avg_wait_times(self):
         print("Average wait time for every pipeline stage")
-        for i in range(len(self._stages)):
-            stage = self._stages[i]
-            print(f"Stage {i}, type {type(stage)}:", 1000*stage.get_avg_wait_time(), "ms")
+        for i, stage in enumerate(self._stages):
+            print("Stage {:d} ({:s}): {:.2f} ms"
+                  .format(i, type(stage).__name__, 1000 * stage.get_avg_wait_time()))
 
     def print_avg_processing_capacity(self):
         print("Average processing capacity for every pipeline stage")
-        for i in range(len(self._stages)):
-            stage = self._stages[i]
-            print(f"Stage {i}, type {type(stage)}: ", 100*stage.get_avg_processing_capacity(), "%", sep="")
+        for i, stage in enumerate(self._stages):
+            print("Stage {:d} ({:s}): {:.2f}%"
+                  .format(i, type(stage).__name__, 100 * stage.get_avg_processing_capacity()))
 
     def print_queue_sizes(self):
         print("Queue sizes for every pipeline stage")
-        for i in range(len(self._stages)):
-            stage = self._stages[i]
-            print(f"Stage {i}, type {type(stage)}:", stage.out_queue.qsize(), "item(s)")
+        for i, stage in enumerate(self._stages):
+            print("Stage {:d} ({:s}): {:d} item(s)"
+                  .format(i, type(stage).__name__, stage.out_queue.qsize()))
 
     # def get_stage_by_index(self, index):
     #     return self._stages[index]
