@@ -37,7 +37,7 @@ class Application(tk.Frame):
         self.ip_field.pack(side=tk.TOP, pady=5)
 
         self.image_canvas = tk.Canvas(self)
-        self.image_canvas.configure(bg='gray')
+        self.image_canvas.configure(bg="gray")
         self.image_canvas.pack(side=tk.BOTTOM)
 
         self.start_button = ttk.Button(self)
