@@ -13,7 +13,7 @@ class Application(tk.Frame):
     ms = int(1000/fps)
     title = "Proyecto de Percepción y Manipulación"
 
-    def __init__(self, master=None):
+    def __init__(self, master):
         super().__init__(master)
         self.master = master
         self.master.title(Application.title)
