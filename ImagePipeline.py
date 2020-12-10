@@ -197,6 +197,9 @@ class PositionControlStage(Consumer):
                 )
         return Image.fromarray(img)
 
+    def is_stopped(self):
+        return self._stopped
+
     def _on_stopped(self):
         self._http_interface.stop()
         if PositionControlStage.compute_area_z_relationship:

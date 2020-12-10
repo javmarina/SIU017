@@ -53,9 +53,6 @@ class Pipeline:
             print("Stage {:d} ({:s}): {:d} item(s)"
                   .format(i, type(stage).__name__, stage.out_queue.qsize()))
 
-    # def get_stage_by_index(self, index):
-    #     return self._stages[index]
-    #
     # def get_stage_by_class(self, stage_class):
     #     for stage in self._stages:
     #         if isinstance(stage, stage_class):
@@ -77,6 +74,9 @@ class StraightPipeline(Pipeline):
         super().__init__(stages)
         for i in range(1, len(self._stages)):
             self._stages[i].subscribe_to(self._stages[i - 1])
+
+    def __getitem__(self, index):
+        return self._stages[index]
 
     def get_consumer_output(self):
         return self._stages[-1].get_last_output()
