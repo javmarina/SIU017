@@ -1,3 +1,5 @@
 my_model/
 my_model2/
 my_model3/
+efficientdet_d1_coco17_tpu-32/
+efficientdet_d0_coco17_tpu-32/
