@@ -29,7 +29,7 @@ from neural_network.PascalVoc import *
 class Base:
     def __init__(self, model_path: str):
         if not os.path.exists(model_path):
-            os.makedirs(model_path)
+            raise ValueError("{:s} folder not found".format(model_path))
 
         self._imgs_path = os.path.join(model_path, "imgs")
         if not os.path.exists(self._imgs_path):
