@@ -70,6 +70,9 @@ class Base:
             os.makedirs(self._training_loop_path)
 
         self._pipeline_config_path = os.path.join(self._training_loop_path, "pipeline.config")
+        if not os.path.exists(self._pipeline_config_path):
+            raise FileNotFoundError("pipeline.config file must be present in {:s}"
+                                    .format(self._pipeline_config_path))
 
         self._img_filenames = glob.glob(os.path.join(self._imgs_path, "*.jpg"))
         self._xml_filenames = glob.glob(os.path.join(self._xml_path, "*.xml"))
