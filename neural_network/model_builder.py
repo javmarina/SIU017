@@ -297,7 +297,7 @@ class SampleVerification(Base):
 class DataAugmenter(Base):
     def __init__(self, model_path):
         super().__init__(model_path)
-        # Add iaa.Affine() to list if you want to keep the original image
+        # Add iaa.Rotate(0) to list if you want to keep the original image
         self._augmenters = [iaa.Rotate((-180, 180), fit_output=False, mode="edge")] * 5
 
     def augment_data(self):
