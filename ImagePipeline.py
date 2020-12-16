@@ -115,8 +115,8 @@ class PositionControlStage(Consumer):
 
     A1 = 100
     v1 = 0.25
-    A2 = 5000
-    v2 = 0.04
+    A2 = 8000
+    v2 = 0.1
 
     compute_area_z_relationship = True
 
