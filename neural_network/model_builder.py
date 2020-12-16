@@ -139,7 +139,6 @@ class Base:
 class SampleAdquisition(Base):
     def __init__(self, robot_model: RobotModel, model_path: str, reset=False, address="127.0.0.1"):
         super().__init__(model_path)
-        self._model = robot_model
         self._adq_rate = 10
         self._controller = RobotHttpInterface(robot_model, address)
         self._run = True
