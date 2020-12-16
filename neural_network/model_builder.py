@@ -142,11 +142,21 @@ class SampleAdquisition(Base):
         self._model = robot_model
         self._adq_rate = 10
         self._controller = RobotHttpInterface(robot_model, address)
-        self._model_path = model_path
-        self._current_index = 0 if reset else self._get_next_file_index()
+        self._run = True
+        if reset:
+            self._current_index = 0
+        else:
+            self._current_index = self._get_next_file_index()
+            if self._current_index > 0:
+                # Images already acquired, skip step
+                self._run = False
         self._pipeline = ImagePipeline(address, robot_model, self._adq_rate)
 
     def run(self):
+        if not self._run:
+            print("Images already acquired, skipping SampleAdquisition step")
+            return
+
         self._pipeline.start()
         time.sleep(1)
         while True:
@@ -194,6 +204,11 @@ class SampleVerification(Base):
         self._current_axes = []
 
     def run(self):
+        if len(glob.glob(os.path.join(self._imgs_aug_path, "*.jpg"))) > 0:
+            # Images already augmented (therefore verified), skip step
+            print("Images already verified, skipping SampleVerification step")
+            return
+
         count = 0
         for chunk in self.grouper(self._iterate_source_files(), 12, fillvalue=None):
             objects = []
@@ -287,6 +302,11 @@ class DataAugmenter(Base):
         self._augmenters = [iaa.Rotate((-180, 180), fit_output=False, mode="edge")] * 5
 
     def augment_data(self):
+        if len(glob.glob(os.path.join(self._imgs_aug_path, "*.jpg"))) > 0:
+            # Images already augmented, skip step
+            print("Images already augmented, skipping DataAugmenter step")
+            return
+
         augmenters = self._augmenters
         for i, img_path, xml_path in self._iterate_source_files():
             im_np = np.array(Image.open(img_path))
@@ -315,11 +335,17 @@ class DataAugmenter(Base):
 
 class TfRecordGenerator(Base):
     def generate_tf_records(self, ratio: int = 0.1):
-        self._copy_files(ratio)
-        self._generate_tf_record(self._test_path, "test.record")
-        self._generate_tf_record(self._train_path, "train.record")
+        skipped = self._copy_files(ratio)
+        if not skipped:
+            self._generate_tf_record(self._test_path, "test.record")
+            self._generate_tf_record(self._train_path, "train.record")
 
-    def _copy_files(self, ratio):
+    def _copy_files(self, ratio) -> bool:
+        if os.path.exists(os.path.join(self._train_path, "train.record")):
+            # Train TF record already generated (should also have test TF record), skip step
+            print("TF records already generated, skipping TfRecordGenerator step")
+            return True
+
         if os.path.exists(self._train_path):
             rmtree(self._train_path)
             print("Removed {} folder".format(self._train_path))
@@ -361,6 +387,7 @@ class TfRecordGenerator(Base):
             new_xml_path = os.path.join(self._train_path, xml_filename)
             copyfile(xml_path, new_xml_path)
         print("Files copied to {}".format(self._train_path))
+        return False
 
     def _generate_tf_record(self, path: str, record_filename: str):
         # TODO: https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/using_your_own_dataset.md#sharding-datasets
