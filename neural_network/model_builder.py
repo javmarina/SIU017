@@ -532,7 +532,7 @@ if __name__ == "__main__":
 
     matplotlib.use("TkAgg")
 
-    model_path = "my_model3"
+    model_path = input("Write the model path: ")
 
     adq = SampleAdquisition(RobotModel.GIRONA_500_1, model_path, reset=True)
     adq.run()
