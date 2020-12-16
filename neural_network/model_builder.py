@@ -2,6 +2,7 @@ import glob
 import math
 import random
 import subprocess
+import sys
 import time
 import webbrowser
 from itertools import zip_longest
@@ -19,6 +20,9 @@ from imgaug import augmenters as iaa
 from object_detection import model_lib_v2, exporter_lib_v2
 from object_detection.protos.string_int_label_map_pb2 import StringIntLabelMapItem, StringIntLabelMap
 from object_detection.utils import dataset_util, label_map_util, config_util
+
+# In order for below imports to work
+sys.path.append("..")
 
 from ImagePipeline import ImagePipeline
 from RobotHttpInterface import RobotHttpInterface
