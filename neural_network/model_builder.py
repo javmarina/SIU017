@@ -142,18 +142,15 @@ class Base:
 
 
 class SampleAdquisition(Base):
-    def __init__(self, robot_model: RobotModel, model_path: str, reset=False, address="127.0.0.1"):
+    def __init__(self, robot_model: RobotModel, model_path: str, address="127.0.0.1"):
         super().__init__(model_path)
         self._adq_rate = 10
         self._controller = RobotHttpInterface(robot_model, address)
         self._run = True
-        if reset:
-            self._current_index = 0
-        else:
-            self._current_index = self._get_next_file_index()
-            if self._current_index > 0:
-                # Images already acquired, skip step
-                self._run = False
+        self._current_index = self._get_next_file_index()
+        if self._current_index > 0:
+            # Images already acquired, skip step
+            self._run = False
         self._pipeline = ImagePipeline(address, robot_model, self._adq_rate)
 
     def run(self):
@@ -550,7 +547,7 @@ if __name__ == "__main__":
 
     model_path = input("Write the model path: ")
 
-    adq = SampleAdquisition(RobotModel.GIRONA_500_1, model_path, reset=True)
+    adq = SampleAdquisition(RobotModel.GIRONA_500_1, model_path)
     adq.run()
 
     verification = SampleVerification(model_path)
