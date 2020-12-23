@@ -1,5 +1,6 @@
 import glob
 import math
+import os
 import random
 import subprocess
 import sys
@@ -27,7 +28,7 @@ sys.path.append("..")
 from ImagePipeline import ImagePipeline
 from RobotHttpInterface import RobotHttpInterface
 from RobotModel import RobotModel
-from neural_network.PascalVoc import *
+from neural_network.PascalVoc import Object, LabeledImage, Reader, Writer
 
 
 class Base:
