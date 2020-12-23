@@ -448,9 +448,8 @@ class TfRecordGenerator(Base):
 
 
 class ModelTrainer(Base):
-    def __init__(self, model_path: str, num_steps: int, memory_growth: bool = False):
+    def __init__(self, model_path: str, memory_growth: bool = False):
         super().__init__(model_path)
-        self._num_steps = num_steps
         self._memory_growth = memory_growth
 
     def run(self):
@@ -488,11 +487,7 @@ class ModelTrainer(Base):
         train_config = configs["train_config"]
         self.assert_equals(
             train_config.optimizer.momentum_optimizer.learning_rate.cosine_decay_learning_rate.total_steps,
-            self._num_steps
-        )
-        self.assert_equals(
-            train_config.num_steps,
-            self._num_steps
+            train_config.num_steps
         )
 
         self.assert_equals(
@@ -572,7 +567,7 @@ if __name__ == "__main__":
 
     # p2 = subprocess.Popen(["python", "model_evaluator.py", model_path])
 
-    model_trainer = ModelTrainer(model_path, num_steps=40000)
+    model_trainer = ModelTrainer(model_path)
     model_trainer.run()
 
     p1.kill()
