@@ -472,7 +472,8 @@ class ModelTrainer(Base):
         with strategy.scope():
             model_lib_v2.train_loop(
                 pipeline_config_path=self._pipeline_config_path,
-                model_dir=self._training_loop_path
+                model_dir=self._training_loop_path,
+                checkpoint_max_to_keep=None  # keep all checkpoints
             )
 
     def _validate_pipeline_config(self):
