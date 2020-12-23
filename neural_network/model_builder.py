@@ -495,6 +495,21 @@ class ModelTrainer(Base):
             self._num_steps
         )
 
+        self.assert_equals(
+            train_config.max_number_of_boxes,
+            1
+        )
+
+        self.assert_equals(
+            train_config.use_bfloat16,
+            False
+        )
+
+        self.assert_equals(
+            train_config.fine_tune_checkpoint_type,
+            "detection"
+        )
+
         train_input_reader = configs["train_input_config"]
         self.assert_equals(
             train_input_reader.label_map_path,
