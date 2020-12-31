@@ -1,7 +1,7 @@
 import pickle
 
 import matplotlib.pyplot as plt
-import numpy as np
+from scipy.signal import savgol_filter
 
 if __name__ == "__main__":
     with open("area_z.p", "rb") as f:
@@ -16,10 +16,12 @@ if __name__ == "__main__":
 
         x = zs
         y = areas
-        v = np.polyfit(x, np.log(y), 1)
-        X_test = np.array(x)
-        Y_pred = np.exp(v[1])*np.exp(X_test*v[0])
+        y_filtered = savgol_filter(y, window_length=51, polyorder=3)
 
-        plt.plot(zs, areas)
-        plt.plot(X_test, Y_pred)
+        plt.plot(x, y, label="Original values")
+        plt.plot(x, y_filtered, label="Savitzky–Golay filter")
+        plt.legend()
+        plt.grid()
+        plt.xlabel("Z")
+        plt.ylabel("Area in pixels")
         plt.show()
