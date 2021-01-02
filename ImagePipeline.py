@@ -156,9 +156,6 @@ class PositionControlStage(Consumer):
             angle = np.arctan2(-eig1[1], eig1[0])
             area = mat.shape[0]
 
-            if PositionControlStage.compute_area_z_relationship:
-                self._area_z_list.append((area, self._http_interface.get_position()[2]))
-
             x, y, w, h = cv.boundingRect(contour)
             cv.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
@@ -189,6 +186,9 @@ class PositionControlStage(Consumer):
                 self._http_interface.stop()
                 self._stopped = True
             elif not self._stopped:
+                if PositionControlStage.compute_area_z_relationship:
+                    self._area_z_list.append((area, self._http_interface.get_position()[2]))
+
                 self._http_interface.set_velocity(
                     x=PositionControlStage.Kp_lineal*(height/2-center[1]),
                     y=PositionControlStage.Kp_lineal*(center[0]-width/2),
