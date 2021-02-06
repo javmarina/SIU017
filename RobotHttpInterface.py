@@ -18,8 +18,12 @@ class RobotHttpInterface:
         :param robot_model: model of the robot (see RobotModel enum for reference).
         :param address: controller address, which can be an URL or an IP address. Defaults to "127.0.0.1" (localhost).
         """
-        port = robot_model.get_controller_port()
-        self._url_base = "http://" + address + ":" + str(port)
+        self._movement_url = "http://" + address + ":" + str(robot_model.get_movement_controller_port())
+        try:
+            self._gripper_url = "http://" + address + ":" + str(robot_model.get_gripper_controller_port())
+        except ValueError:
+            # No gripper available in this robot
+            self._gripper_url = None
 
     def stop(self):
         """
@@ -28,7 +32,7 @@ class RobotHttpInterface:
         """
         command = "/stop"
         RobotHttpInterface.lock.acquire()
-        r = requests.get(self._url_base + command)
+        r = requests.get(self._movement_url + command)
         RobotHttpInterface.lock.release()
         return r.status_code == 200
 
@@ -39,7 +43,7 @@ class RobotHttpInterface:
         """
         command = "/forward"
         RobotHttpInterface.lock.acquire()
-        r = requests.get(self._url_base + command)
+        r = requests.get(self._movement_url + command)
         RobotHttpInterface.lock.release()
         return r.status_code == 200
 
@@ -50,7 +54,7 @@ class RobotHttpInterface:
         """
         command = "/backward"
         RobotHttpInterface.lock.acquire()
-        r = requests.get(self._url_base + command)
+        r = requests.get(self._movement_url + command)
         RobotHttpInterface.lock.release()
         return r.status_code == 200
 
@@ -61,7 +65,7 @@ class RobotHttpInterface:
         """
         command = "/left"
         RobotHttpInterface.lock.acquire()
-        r = requests.get(self._url_base + command)
+        r = requests.get(self._movement_url + command)
         RobotHttpInterface.lock.release()
         return r.status_code == 200
 
@@ -72,7 +76,7 @@ class RobotHttpInterface:
         """
         command = "/right"
         RobotHttpInterface.lock.acquire()
-        r = requests.get(self._url_base + command)
+        r = requests.get(self._movement_url + command)
         RobotHttpInterface.lock.release()
         return r.status_code == 200
 
@@ -83,7 +87,7 @@ class RobotHttpInterface:
         """
         command = "/turnleft"
         RobotHttpInterface.lock.acquire()
-        r = requests.get(self._url_base + command)
+        r = requests.get(self._movement_url + command)
         RobotHttpInterface.lock.release()
         return r.status_code == 200
 
@@ -94,7 +98,7 @@ class RobotHttpInterface:
         """
         command = "/turnright"
         RobotHttpInterface.lock.acquire()
-        r = requests.get(self._url_base + command)
+        r = requests.get(self._movement_url + command)
         RobotHttpInterface.lock.release()
         return r.status_code == 200
 
@@ -105,7 +109,7 @@ class RobotHttpInterface:
         """
         command = "/up"
         RobotHttpInterface.lock.acquire()
-        r = requests.get(self._url_base + command)
+        r = requests.get(self._movement_url + command)
         RobotHttpInterface.lock.release()
         return r.status_code == 200
 
@@ -116,7 +120,7 @@ class RobotHttpInterface:
         """
         command = "/down"
         RobotHttpInterface.lock.acquire()
-        r = requests.get(self._url_base + command)
+        r = requests.get(self._movement_url + command)
         RobotHttpInterface.lock.release()
         return r.status_code == 200
 
@@ -142,7 +146,7 @@ class RobotHttpInterface:
             "PERCENTAGE": percentage
         }
         RobotHttpInterface.lock.acquire()
-        r = requests.get(self._url_base + "/setVelocity", params=query_params)
+        r = requests.get(self._movement_url + "/setVelocity", params=query_params)
         RobotHttpInterface.lock.release()
         return r.status_code == 200
 
@@ -153,10 +157,43 @@ class RobotHttpInterface:
         """
         command = "/getPosition"
         RobotHttpInterface.lock.acquire()
-        r = requests.get(self._url_base + command)
+        r = requests.get(self._movement_url + command)
         RobotHttpInterface.lock.release()
         position = r.json()
         return position["x"], position["y"], position["z"]
+
+    def open_gripper(self):
+        """
+        Open the robot gripper.
+        :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
+        """
+        command = "/open"
+        RobotHttpInterface.lock.acquire()
+        r = requests.get(self._gripper_url + command)
+        RobotHttpInterface.lock.release()
+        return r.status_code == 200
+
+    def close_gripper(self):
+        """
+        Close the robot gripper.
+        :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
+        """
+        command = "/close"
+        RobotHttpInterface.lock.acquire()
+        r = requests.get(self._gripper_url + command)
+        RobotHttpInterface.lock.release()
+        return r.status_code == 200
+
+    def stop_gripper(self):
+        """
+        Stop the robot gripper.
+        :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
+        """
+        command = "/stop"
+        RobotHttpInterface.lock.acquire()
+        r = requests.get(self._gripper_url + command)
+        RobotHttpInterface.lock.release()
+        return r.status_code == 200
 
 # if __name__ == "__main__":
 #     robot_controller = RobotHttpInterface(8000)

@@ -7,9 +7,9 @@ class RobotModel(Enum):
     GIRONA_500_2 = "Girona 500 2"
     BLUE_ROV = "BlueRov"
     
-    def get_controller_port(self) -> int:
+    def get_movement_controller_port(self) -> int:
         """
-        :return: the HTTP control interface port for this robot model.
+        :return: the HTTP movement control interface port for this robot model.
         """
         if self == RobotModel.GIRONA_500_1:
             return 8000
@@ -17,6 +17,17 @@ class RobotModel(Enum):
             return 8010
         elif self == RobotModel.BLUE_ROV:
             return 8020
+        else:
+            raise ValueError("Invalid robot model: " + str(self))
+
+    def get_gripper_controller_port(self) -> int:
+        """
+        :return: the HTTP gripper control interface port for this robot model.
+        """
+        if self == RobotModel.GIRONA_500_1:
+            return 8002
+        elif self == RobotModel.GIRONA_500_2:
+            return 8012
         else:
             raise ValueError("Invalid robot model: " + str(self))
 
