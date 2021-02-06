@@ -47,7 +47,6 @@ class FiringStage(Producer):
 
 
 class AdqStage(PipelineStage):
-
     # Whether to use the low-level urllib library instead of requests when fetching the camera image
     # urllib takes ~58 ms to download the image, while requests spends ~90 ms (~75 ms when verify=False)
     use_urllib = True
@@ -114,7 +113,6 @@ class ObjectDetectionStage(PipelineStage):
 
 
 class PositionControlStage(Consumer):
-
     Kp_lineal = 0.005
     Kp_angular = 0.08
 
@@ -169,7 +167,7 @@ class PositionControlStage(Consumer):
             cv.putText(
                 img=img,
                 text="({:.1f}, {:.1f})".format(center[0], center[1]),
-                org=(x+w, y+h),
+                org=(x + w, y + h),
                 fontFace=cv.FONT_HERSHEY_SIMPLEX,
                 fontScale=0.6,
                 color=(0, 255, 0),
@@ -199,10 +197,10 @@ class PositionControlStage(Consumer):
                 z = self._z_estimator(area)
 
                 self._http_interface.set_velocity(
-                    x=PositionControlStage.Kp_lineal*(height/2-center[1]),
-                    y=PositionControlStage.Kp_lineal*(center[0]-width/2),
+                    x=PositionControlStage.Kp_lineal * (height / 2 - center[1]),
+                    y=PositionControlStage.Kp_lineal * (center[0] - width / 2),
                     z=self._z_velocity_computer(z),
-                    az=-PositionControlStage.Kp_angular*angle
+                    az=-PositionControlStage.Kp_angular * angle
                 )
         return Image.fromarray(img)
 
