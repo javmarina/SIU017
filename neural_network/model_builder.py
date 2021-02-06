@@ -25,7 +25,7 @@ from object_detection.utils import dataset_util, label_map_util, config_util
 # In order for below imports to work
 sys.path.append("..")
 
-from RobotPipelines import ImagePipeline
+from RobotPipelines import LeaderPipeline
 from RobotHttpInterface import RobotHttpInterface
 from RobotModel import RobotModel
 from neural_network.PascalVoc import Object, LabeledImage, Reader, Writer
@@ -151,7 +151,7 @@ class SampleAdquisition(Base):
         if self._current_index > 0:
             # Images already acquired, skip step
             self._run = False
-        self._pipeline = ImagePipeline(address, robot_model, self._adq_rate)
+        self._pipeline = LeaderPipeline(address, robot_model, self._adq_rate)
 
     def run(self):
         if not self._run:

@@ -3,7 +3,7 @@ from tkinter import ttk
 
 from PIL import ImageTk
 
-from RobotPipelines import ImagePipeline
+from RobotPipelines import LeaderPipeline
 from RobotModel import RobotModel
 
 
@@ -19,7 +19,7 @@ class Application(tk.Frame):
         self.master.title(Application.title)
         self.pack()
         self.master.resizable(width=True, height=True)
-        self.pipeline = None
+        self.leader_pipeline = None
         self._create_widgets()
 
     def _create_widgets(self):
@@ -49,17 +49,17 @@ class Application(tk.Frame):
         # Start streaming task
         value = self.combobox.get()
         robot_model = RobotModel(value)
-        if self.pipeline:
-            self.pipeline.stop()
-        self.pipeline = ImagePipeline(
+        if self.leader_pipeline:
+            self.leader_pipeline.stop()
+        self.leader_pipeline = LeaderPipeline(
             address=self.ip_field.get(),
             robot_model=robot_model,
             adq_rate=Application.fps)
-        self.pipeline.start()
+        self.leader_pipeline.start()
         self.task_id = self.image_canvas.after(ms=0, func=self._load_image)
 
     def _load_image(self):
-        frame = self.pipeline.get_last_frame()
+        frame = self.leader_pipeline.get_last_frame()
         if frame:
             self._frame = ImageTk.PhotoImage(image=frame)  # prevent GC by setting it as an instance field
             self.image_canvas.configure(width=frame.width, height=frame.height)
@@ -69,8 +69,8 @@ class Application(tk.Frame):
         self.image_canvas.after(ms=self.ms, func=self._load_image)
 
     def _quit(self):
-        if self.pipeline:
-            self.pipeline.stop()
+        if self.leader_pipeline:
+            self.leader_pipeline.stop()
         self.master.destroy()
 
 
