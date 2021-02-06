@@ -27,7 +27,7 @@ class ImagePipeline(StraightPipeline):
             FiringStage(adq_rate),
             AdqStage(http_interface),
             ImageConversionStage(),
-            ObjectDetectionStage(),
+            TubeDetectionStage(),
             PositionControlStage(http_interface)
         ])
 
@@ -60,7 +60,7 @@ class ImageConversionStage(PipelineStage):
         return np.array(Image.open(io.BytesIO(response_content)))
 
 
-class ObjectDetectionStage(PipelineStage):
+class TubeDetectionStage(PipelineStage):
     @staticmethod
     def _get_contour_eccentricity(contour):
         (_, _), (ma, MA), _ = cv.fitEllipse(contour)
