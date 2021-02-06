@@ -1,15 +1,20 @@
 import io
+import os
+import pickle
 import time
 
 import cv2 as cv
 import numpy as np
 import requests
 from PIL import Image
+from scipy.interpolate import interp1d
+from scipy.signal import savgol_filter
 
 from RobotHttpInterface import RobotHttpInterface
 from RobotModel import RobotModel
 from pipeline.Pipeline import StraightPipeline
 from pipeline.PipelineStage import Producer, PipelineStage, Consumer
+from utils.CubicPath import CubicPath
 
 
 class ImagePipeline(StraightPipeline):
@@ -113,24 +118,26 @@ class PositionControlStage(Consumer):
     Kp_lineal = 0.005
     Kp_angular = 0.08
 
-    A1 = 100
-    v1 = 0.25
-    A2 = 8000
-    v2 = 0.1
+    compute_area_z_relationship = False
 
-    compute_area_z_relationship = True
-
-    def __init__(self, address, robot_model: RobotModel):
+    def __init__(self, address, robot_model: RobotModel, z_speed_profile: CubicPath = None):
         super().__init__()
         self._http_interface = RobotHttpInterface(robot_model, address)
-        self._z_velocity_computer = PositionControlStage.VelocityZComputer(
-            A1=PositionControlStage.A1,
-            A2=PositionControlStage.A2,
-            v1=PositionControlStage.v1,
-            v2=PositionControlStage.v2
-        )
+
+        if z_speed_profile is None:
+            # Initialize with default values
+            self._z_velocity_computer = CubicPath(
+                x1=2, x2=8,
+                y1=0.25, y2=0.1
+            )
+        else:
+            self._z_velocity_computer = z_speed_profile
+
+        self._z_estimator = PositionControlStage.ZEstimator()
+
         if PositionControlStage.compute_area_z_relationship:
             self._area_z_list = []
+
         self._stopped = False
 
     @staticmethod
@@ -189,10 +196,12 @@ class PositionControlStage(Consumer):
                 if PositionControlStage.compute_area_z_relationship:
                     self._area_z_list.append((area, self._http_interface.get_position()[2]))
 
+                z = self._z_estimator(area)
+
                 self._http_interface.set_velocity(
                     x=PositionControlStage.Kp_lineal*(height/2-center[1]),
                     y=PositionControlStage.Kp_lineal*(center[0]-width/2),
-                    z=self._z_velocity_computer.compute_velocity(area),
+                    z=self._z_velocity_computer(z),
                     az=-PositionControlStage.Kp_angular*angle
                 )
         return Image.fromarray(img)
@@ -203,8 +212,6 @@ class PositionControlStage(Consumer):
     def _on_stopped(self):
         self._http_interface.stop()
         if PositionControlStage.compute_area_z_relationship:
-            import pickle
-            import os
             current_dir = os.path.dirname(os.path.realpath(__file__))
             path = os.path.join(current_dir, "tests", "area_z.p")
             if os.path.exists(path):
@@ -212,25 +219,27 @@ class PositionControlStage(Consumer):
             with open(path, "xb") as f:
                 pickle.dump(obj=self._area_z_list, file=f)
 
-    class VelocityZComputer:
-        def __init__(self, A1, A2, v1, v2):
-            delta_A = A2-A1
-            delta_v = v2-v1
-            self._a = -2*delta_v/(delta_A**3)
-            self._b = 3*delta_v/(delta_A**2)
-            self._c = 0
-            self._d = v1
+    class ZEstimator:
+        def __init__(self):
+            current_dir = os.path.dirname(os.path.realpath(__file__))
+            path = os.path.join(current_dir, "tests", "area_z.p")
 
-            self._A1 = A1
-            self._A2 = A2
-            self._v1 = v1
-            self._v2 = v2
+            with open(path, "rb") as f:
+                list = pickle.load(f)
 
-        def compute_velocity(self, area):
-            if area <= self._A1:
-                return self._v1
-            elif area >= self._A2:
-                return self._v2
+            self._interpolator = None
+            if list is not None:
+                areas = []
+                zs = []
+                for area, z in list:
+                    areas.append(area)
+                    zs.append(z)
+
+                areas = savgol_filter(areas, window_length=51, polyorder=3)
+                self._interpolator = interp1d(areas, zs, kind='cubic')
+
+        def __call__(self, area):
+            if self._interpolator is None:
+                return None
             else:
-                return self._a*(area-self._A1)**3 + self._b*(area-self._A1)**2\
-                       + self._c*(area-self._A1) + self._d
+                return self._interpolator(area)
