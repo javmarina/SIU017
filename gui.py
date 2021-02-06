@@ -3,7 +3,7 @@ from tkinter import ttk
 
 from PIL import ImageTk
 
-from ImagePipeline import ImagePipeline
+from RobotPipelines import ImagePipeline
 from RobotModel import RobotModel
 
 

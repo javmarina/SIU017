@@ -25,7 +25,7 @@ from object_detection.utils import dataset_util, label_map_util, config_util
 # In order for below imports to work
 sys.path.append("..")
 
-from ImagePipeline import ImagePipeline
+from RobotPipelines import ImagePipeline
 from RobotHttpInterface import RobotHttpInterface
 from RobotModel import RobotModel
 from neural_network.PascalVoc import Object, LabeledImage, Reader, Writer
