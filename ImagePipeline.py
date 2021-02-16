@@ -235,9 +235,18 @@ class PositionControlStage(Consumer):
 
                 areas = savgol_filter(areas, window_length=51, polyorder=3)
                 self._interpolator = interp1d(areas, zs, kind='cubic')
+                self._min_area = min(areas)
+                self._max_area = max(areas)
+                self._min_z = min(zs)
+                self._max_z = max(zs)
 
         def __call__(self, area):
             if self._interpolator is None:
                 return None
             else:
-                return self._interpolator(area)
+                if area <= self._min_area:
+                    return self._min_z
+                elif area >= self._max_area:
+                    return self._max_z
+                else:
+                    return self._interpolator(area)
