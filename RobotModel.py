@@ -43,3 +43,16 @@ class RobotModel(Enum):
             return 8021
         else:
             raise ValueError("Invalid robot model: " + str(self))
+
+    def get_hsv_range(self):
+        """
+        :return: the HSV range for this robot model. Format [(low_H, low_S, low_V), (high_H, high_S, high_V)]
+        """
+        if self == RobotModel.GIRONA_500_1:
+            return [(20, 120, 120), (50, 255, 255)]
+        elif self == RobotModel.GIRONA_500_2:
+            return [(70, 120, 120), (180, 255, 255)]
+        elif self == RobotModel.BLUE_ROV:
+            return [(0, 0, 135), (35, 255, 255)]
+        else:
+            raise ValueError("Invalid robot model: " + str(self))
