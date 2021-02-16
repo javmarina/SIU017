@@ -2,6 +2,7 @@ import io
 import os
 import pickle
 import time
+from itertools import combinations
 
 import cv2 as cv
 import numpy as np
@@ -16,7 +17,11 @@ from pipeline.PipelineStage import Producer, PipelineStage, Consumer
 from utils.CubicPath import CubicPath
 
 
-class ImagePipeline(StraightPipeline):
+def _is_touching_border(bw):
+    return bool(np.sum(bw[0, :]) + np.sum(bw[-1, :]) + np.sum(bw[:, 0]) + np.sum(bw[:, -1]))
+
+
+class LeaderPipeline(StraightPipeline):
     def __init__(self, address: str, robot_model: RobotModel, adq_rate):
         if address == "localhost":
             # Avoid DNS resolve for localhost
@@ -29,6 +34,24 @@ class ImagePipeline(StraightPipeline):
             ImageConversionStage(),
             TubeDetectionStage(),
             PositionControlStage(http_interface)
+        ])
+
+    def get_last_frame(self):
+        return self.get_consumer_output()
+
+
+class FollowerPipeline(StraightPipeline):
+    def __init__(self, address, robot_model: RobotModel, leader: RobotModel, adq_rate):
+        if address == "localhost":
+            # Avoid DNS resolve for localhost
+            address = "127.0.0.1"
+        http_interface = RobotHttpInterface(robot_model, address)
+        super().__init__([
+            FiringStage(adq_rate),
+            AdqStage(http_interface),
+            ImageConversionStage(),
+            RobotDetectionStage(target_robot=leader),
+            FollowerStage(http_interface)
         ])
 
     def get_last_frame(self):
@@ -104,6 +127,57 @@ class TubeDetectionStage(PipelineStage):
         return img, tube
 
 
+class RobotDetectionStage(PipelineStage):
+    def __init__(self, target_robot: RobotModel):
+        super().__init__()
+        self._target_robot = target_robot
+        self._hsv_range = target_robot.get_hsv_range()
+
+    def _process(self, in_data):
+        img = in_data
+
+        # Gaussian filter
+        filtered = cv.GaussianBlur(img, (9, 9), 0)
+
+        hsv = cv.cvtColor(filtered, cv.COLOR_RGB2HSV)
+        bw = cv.inRange(hsv, self._hsv_range[0], self._hsv_range[1])
+
+        # Opening
+        kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
+        bw = cv.morphologyEx(bw, cv.MORPH_OPEN, kernel)
+
+        # Close
+        kernel = cv.getStructuringElement(cv.MORPH_RECT, (7, 7))
+        bw = cv.morphologyEx(bw, cv.MORPH_CLOSE, kernel)
+
+        # Find & filter contours
+        contours, _ = cv.findContours(bw, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
+        contours = filter(lambda cnt: cv.contourArea(cnt) > 200, contours)
+        contours = [cv.convexHull(cnt) for cnt in contours]
+
+        mask = np.zeros_like(bw)
+        cv.drawContours(mask, contours, -1, 255, -1)
+
+        # Compute convex hull of all contours
+        for cnt1, cnt2 in combinations(contours, 2):
+            M1 = cv.moments(cnt1)
+            cX1 = int(M1["m10"] / M1["m00"])
+            cY1 = int(M1["m01"] / M1["m00"])
+
+            M2 = cv.moments(cnt2)
+            cX2 = int(M2["m10"] / M2["m00"])
+            cY2 = int(M2["m01"] / M2["m00"])
+
+            cv.line(mask, (cX1, cY1), (cX2, cY2), color=255, thickness=4)
+
+        contours, _ = cv.findContours(mask, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
+        robot = None
+        if len(contours) > 0:
+            robot = cv.convexHull(max(contours, key=lambda cnt: cv.contourArea(cnt)))
+
+        return img, robot
+
+
 class PositionControlStage(Consumer):
     Kp_lineal = 0.005
     Kp_angular = 0.08
@@ -129,10 +203,6 @@ class PositionControlStage(Consumer):
             self._area_z_list = []
 
         self._stopped = False
-
-    @staticmethod
-    def _is_touching_border(bw):
-        return bool(np.sum(bw[0, :]) + np.sum(bw[-1, :]) + np.sum(bw[:, 0]) + np.sum(bw[:, -1]))
 
     def _consume(self, in_data):
         img, contour = in_data
@@ -179,7 +249,7 @@ class PositionControlStage(Consumer):
             # AZ positivo: el robot gira con sacacorchos hacia el fondo (turn right)
             # AZ negativo: el robot gira con sacacorchos hacia arriba (turn left)
 
-            if self._is_touching_border(mask):
+            if _is_touching_border(mask):
                 self._http_interface.stop()
                 self._stopped = True
             elif not self._stopped:
@@ -242,3 +312,62 @@ class PositionControlStage(Consumer):
                     return self._max_z
                 else:
                     return self._interpolator(area)
+
+
+class FollowerStage(Consumer):
+    Kp_lineal = 0.0005
+    target_size_pixels = 9000
+
+    def __init__(self, http_interface: RobotHttpInterface):
+        super().__init__()
+        self._http_interface = http_interface
+
+    def _consume(self, in_data):
+        img, contour = in_data
+        if contour is None:
+            self._http_interface.stop()
+        else:
+            img = img.copy()
+            width = img.shape[1]
+            height = img.shape[0]
+
+            mask = np.zeros(img.shape[0:2])
+            cv.drawContours(mask, [contour], -1, 255, -1)
+            mat = np.argwhere(mask != 0)
+            mat[:, [0, 1]] = mat[:, [1, 0]]
+            mat = np.array(mat).astype(np.float32)  # have to convert type for PCA
+
+            m, e = cv.PCACompute(mat, mean=np.array([]))
+            center = tuple(m[0])  # Note that center is the center of mass, not (max+min)/2 (geometric center)
+            eig1 = e[0]
+            angle = np.arctan2(-eig1[1], eig1[0])
+            area = mat.shape[0]
+
+            x, y, w, h = cv.boundingRect(contour)
+            # cv.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv.drawContours(img, [contour], -1, (0, 255, 0), -1)
+
+            cv.putText(
+                img=img,
+                text="({:.1f}, {:.1f})".format(center[0], center[1]),
+                org=(x + w, y + h),
+                fontFace=cv.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.6,
+                color=(0, 255, 0),
+                thickness=1,
+                lineType=cv.LINE_AA)
+
+            if _is_touching_border(mask):
+                self._http_interface.stop()
+            else:
+                z_speed = FollowerStage.Kp_lineal * (FollowerStage.target_size_pixels - area)
+                self._http_interface.set_velocity(
+                    x=FollowerStage.Kp_lineal * (height / 2 - center[1]),
+                    y=FollowerStage.Kp_lineal * (center[0] - width / 2),
+                    z=max(z_speed, 0),
+                    az=0.0
+                )
+        return Image.fromarray(img)
+
+    def _on_stopped(self):
+        self._http_interface.stop()
