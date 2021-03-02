@@ -1,3 +1,5 @@
+import atexit
+
 
 class Pipeline:
     """
@@ -12,12 +14,14 @@ class Pipeline:
     def start(self):
         for stage in reversed(self._stages):
             stage.start()
+        atexit.register(self.stop)
         self._running = True
 
     def stop(self):
         for stage in self._stages:
             stage.stop()
             stage.join()
+        atexit.unregister(self.stop)
         self._running = False
 
     def print_all_debug_info(self):
