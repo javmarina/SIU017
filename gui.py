@@ -23,8 +23,7 @@ class Application(tk.Frame):
         self._create_widgets()
 
     def _create_widgets(self):
-        self.quit = tk.Button(self, text="QUIT", fg="red",
-                              command=self._quit)
+        self.quit = ttk.Button(self, text="QUIT", fg="red", command=self._quit)
         self.quit.pack(side=tk.BOTTOM, pady=5)
 
         self.combobox = ttk.Combobox(self, state="readonly")
