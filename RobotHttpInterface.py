@@ -1,3 +1,5 @@
+from threading import Lock
+
 import requests
 
 from RobotModel import RobotModel
@@ -7,6 +9,8 @@ class RobotHttpInterface:
     """
     HTTP interface for controlling Girona 500 movement.
     """
+
+    lock = Lock()
 
     def __init__(self, robot_model: RobotModel, address="127.0.0.1"):
         """
@@ -23,7 +27,9 @@ class RobotHttpInterface:
         :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
         """
         command = "/stop"
+        RobotHttpInterface.lock.acquire()
         r = requests.get(self._url_base + command)
+        RobotHttpInterface.lock.release()
         return r.status_code == 200
 
     def forward(self):
@@ -32,7 +38,9 @@ class RobotHttpInterface:
         :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
         """
         command = "/forward"
+        RobotHttpInterface.lock.acquire()
         r = requests.get(self._url_base + command)
+        RobotHttpInterface.lock.release()
         return r.status_code == 200
 
     def backward(self):
@@ -41,7 +49,9 @@ class RobotHttpInterface:
         :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
         """
         command = "/backward"
+        RobotHttpInterface.lock.acquire()
         r = requests.get(self._url_base + command)
+        RobotHttpInterface.lock.release()
         return r.status_code == 200
 
     def move_left(self):
@@ -50,7 +60,9 @@ class RobotHttpInterface:
         :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
         """
         command = "/left"
+        RobotHttpInterface.lock.acquire()
         r = requests.get(self._url_base + command)
+        RobotHttpInterface.lock.release()
         return r.status_code == 200
 
     def move_right(self):
@@ -59,7 +71,9 @@ class RobotHttpInterface:
         :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
         """
         command = "/right"
+        RobotHttpInterface.lock.acquire()
         r = requests.get(self._url_base + command)
+        RobotHttpInterface.lock.release()
         return r.status_code == 200
 
     def turn_left(self):
@@ -68,7 +82,9 @@ class RobotHttpInterface:
         :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
         """
         command = "/turnleft"
+        RobotHttpInterface.lock.acquire()
         r = requests.get(self._url_base + command)
+        RobotHttpInterface.lock.release()
         return r.status_code == 200
 
     def turn_right(self):
@@ -77,7 +93,9 @@ class RobotHttpInterface:
         :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
         """
         command = "/turnright"
+        RobotHttpInterface.lock.acquire()
         r = requests.get(self._url_base + command)
+        RobotHttpInterface.lock.release()
         return r.status_code == 200
 
     def move_up(self):
@@ -86,7 +104,9 @@ class RobotHttpInterface:
         :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
         """
         command = "/up"
+        RobotHttpInterface.lock.acquire()
         r = requests.get(self._url_base + command)
+        RobotHttpInterface.lock.release()
         return r.status_code == 200
 
     def move_down(self):
@@ -95,7 +115,9 @@ class RobotHttpInterface:
         :return: True if the HTTP GET request was accepted (200 OK), False otherwise.
         """
         command = "/down"
+        RobotHttpInterface.lock.acquire()
         r = requests.get(self._url_base + command)
+        RobotHttpInterface.lock.release()
         return r.status_code == 200
 
     def set_velocity(self, x, y, z, az, percentage=100):
@@ -119,7 +141,9 @@ class RobotHttpInterface:
             "AZ": az,
             "PERCENTAGE": percentage
         }
+        RobotHttpInterface.lock.acquire()
         r = requests.get(self._url_base + "/setVelocity", params=query_params)
+        RobotHttpInterface.lock.release()
         return r.status_code == 200
 
     def get_position(self):
@@ -128,7 +152,9 @@ class RobotHttpInterface:
         :return: a 3-item tuple with the robot coordinates in X, Y and Z.
         """
         command = "/getPosition"
+        RobotHttpInterface.lock.acquire()
         r = requests.get(self._url_base + command)
+        RobotHttpInterface.lock.release()
         position = r.json()
         return position["x"], position["y"], position["z"]
 
