@@ -33,7 +33,7 @@ class LeaderPipeline(StraightPipeline):
             AdqStage(http_interface),
             ImageConversionStage(),
             TubeDetectionStage(),
-            PositionControlStage(http_interface)
+            TubeGripStage(http_interface)
         ])
 
     def get_last_frame(self):
@@ -197,7 +197,7 @@ class PositionControlStage(Consumer):
         else:
             self._z_velocity_computer = z_speed_profile
 
-        self._z_estimator = PositionControlStage.ZEstimator()
+        self._z_estimator = ZEstimator()
 
         if PositionControlStage.compute_area_z_relationship:
             self._area_z_list = []
@@ -279,39 +279,39 @@ class PositionControlStage(Consumer):
             with open(path, "xb") as f:
                 pickle.dump(obj=self._area_z_list, file=f)
 
-    class ZEstimator:
-        def __init__(self):
-            current_dir = os.path.dirname(os.path.realpath(__file__))
-            path = os.path.join(current_dir, "tests", "area_z.p")
+class ZEstimator:
+    def __init__(self):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        path = os.path.join(current_dir, "tests", "area_z.p")
 
-            with open(path, "rb") as f:
-                list = pickle.load(f)
+        with open(path, "rb") as f:
+            list = pickle.load(f)
 
-            self._interpolator = None
-            if list is not None:
-                areas = []
-                zs = []
-                for area, z in list:
-                    areas.append(area)
-                    zs.append(z)
+        self._interpolator = None
+        if list is not None:
+            areas = []
+            zs = []
+            for area, z in list:
+                areas.append(area)
+                zs.append(z)
 
-                areas = savgol_filter(areas, window_length=51, polyorder=3)
-                self._interpolator = interp1d(areas, zs, kind='cubic')
-                self._min_area = min(areas)
-                self._max_area = max(areas)
-                self._min_z = min(zs)
-                self._max_z = max(zs)
+            areas = savgol_filter(areas, window_length=51, polyorder=3)
+            self._interpolator = interp1d(areas, zs, kind='cubic')
+            self._min_area = min(areas)
+            self._max_area = max(areas)
+            self._min_z = min(zs)
+            self._max_z = max(zs)
 
-        def __call__(self, area):
-            if self._interpolator is None:
-                return None
+    def __call__(self, area):
+        if self._interpolator is None:
+            return None
+        else:
+            if area <= self._min_area:
+                return self._min_z
+            elif area >= self._max_area:
+                return self._max_z
             else:
-                if area <= self._min_area:
-                    return self._min_z
-                elif area >= self._max_area:
-                    return self._max_z
-                else:
-                    return self._interpolator(area)
+                return self._interpolator(area)
 
 
 class FollowerStage(Consumer):
@@ -368,6 +368,169 @@ class FollowerStage(Consumer):
                     az=0.0
                 )
         return Image.fromarray(img)
+
+    def _on_stopped(self):
+        self._http_interface.stop()
+
+
+class TubeGripStage(Consumer):
+    Kp_lineal = 0.005
+    Kp_angular = 0.08
+    use_ellipse = False
+    z_threshold = 14.9
+    time_close = 7.5
+
+    robot1_ready = False
+    robot2_ready = False
+
+    def __init__(self, http_interface: RobotHttpInterface, z_speed_profile: CubicPath = None):
+        super().__init__()
+        self._http_interface = http_interface
+        self._idx = 0 if http_interface.robot_model is RobotModel.GIRONA_500_1 else 2
+
+        self._grip_point = None
+        self._step = 0
+        self._close_start = None
+        self._wait_start = None
+
+        if z_speed_profile is None:
+            # Initialize with default values
+            self._z_velocity_computer = CubicPath(
+                x1=2, x2=12,
+                y1=0.25, y2=0.1
+            )
+        else:
+            self._z_velocity_computer = z_speed_profile
+
+        self._z_estimator = ZEstimator()
+        self._stopped = False
+
+    def _consume(self, in_data):
+        img, contour = in_data
+
+        if self._step == 0:
+            if contour is not None:
+                img = img.copy()
+
+                img, grip1, grip2, contour_mask, angle, area =\
+                    TubeGripStage.get_grip_points(img, contour, use_ellipse=TubeGripStage.use_ellipse)
+
+                if grip1 is not None and grip2 is not None:
+                    if grip1[0] < grip2[0]:
+                        grip1, grip2 = grip2, grip1
+                    self._grip_point = grip1 if self._idx == 0 else grip2
+
+                if _is_touching_border(contour_mask):
+                    self._http_interface.stop()
+                    self._step = 1
+                elif self._grip_point is not None:
+                    z = self._z_estimator(area)
+
+                    width = img.shape[1]
+                    height = img.shape[0]
+                    self._http_interface.set_velocity(
+                        x=TubeGripStage.Kp_lineal * (height / 2 - self._grip_point[1]),
+                        y=TubeGripStage.Kp_lineal * (self._grip_point[0] - width / 2),
+                        z=self._z_velocity_computer(z),
+                        az=-TubeGripStage.Kp_angular * angle
+                    )
+        elif self._step == 1:
+            _, _, z = self._http_interface.get_position()
+            if z > TubeGripStage.z_threshold:
+                self._http_interface.stop()
+                self._step = 2
+            else:
+                self._http_interface.set_velocity(x=0, y=0, z=0.1, az=0, percentage=100)
+        elif self._step == 2:
+            if self._close_start is None:
+                self._close_start = time.time()
+                self._http_interface.close_gripper()
+            if time.time() - self._close_start > TubeGripStage.time_close:
+                self._http_interface.stop_gripper()
+                self._step = 3
+        elif self._step == 3:
+            if self._idx == 0:
+                TubeGripStage.robot1_ready = True
+            else:
+                TubeGripStage.robot2_ready = True
+
+            if TubeGripStage.robot1_ready and TubeGripStage.robot2_ready:
+                self._step = 4
+        elif self._step == 4:
+            self._http_interface.set_velocity(x=0, y=0, z=-0.25, az=0, percentage=100)
+        return Image.fromarray(img)
+
+    @staticmethod
+    def get_grip_points(img: np.array, contour, use_ellipse: bool = False):
+        contour_mask = np.zeros(img.shape[:2])
+        cv.drawContours(contour_mask, [contour], -1, 255, -1)
+
+        if use_ellipse:
+            ellipse = cv.fitEllipse(contour)
+            center, (d1, d2), angle_deg = ellipse
+            angle_deg = 90 - angle_deg
+            angle_rad = np.deg2rad(angle_deg)
+            # Draw ellipse
+            cv.ellipse(img, ellipse, color=(0, 255, 255), thickness=1)
+            area = None
+        else:
+            mat = np.argwhere(contour_mask != 0)
+            mat[:, [0, 1]] = mat[:, [1, 0]]
+            mat = np.array(mat).astype(np.float32)  # have to convert type for PCA
+
+            m, e = cv.PCACompute(mat, mean=np.array([]))
+            center = tuple(m[0])  # Note that center is the center of mass, not (max+min)/2 (geometric center)
+            eig1 = e[0]
+            area = mat.shape[0]
+            angle_rad = np.arctan2(-eig1[1], eig1[0])
+
+            cv.drawContours(img, [contour], -1, (0, 255, 255), 2)
+
+        xc, yc = center
+
+        # draw circle at center
+        cv.circle(img, (int(xc), int(yc)), 10, (255, 255, 255), -1)
+
+        TubeGripStage.draw_line(img, -angle_rad, (xc, yc), color=(0, 255, 0), thickness=1)
+        TubeGripStage.draw_line(img, -angle_rad - np.pi / 2, (xc, yc), color=(0, 255, 0), thickness=1)
+
+        major_axis_bw = np.zeros_like(contour_mask)
+        TubeGripStage.draw_line(major_axis_bw, -angle_rad, (xc, yc), color=(255, 255, 255), thickness=1)
+        major_axis_bool = major_axis_bw == 255
+
+        contour_outline_mask = np.zeros(img.shape[:2])
+        cv.drawContours(contour_outline_mask, [contour], -1, 255, 1)
+        contour_mask_bool = contour_outline_mask == 255
+
+        major_axis_intersect = np.logical_and(major_axis_bool, contour_mask_bool)
+        intersect_points = np.fliplr(np.transpose(np.where(major_axis_intersect)))
+        if len(intersect_points) == 2:
+            intersect_pt_1, intersect_pt_2 = intersect_points
+
+            center = np.array(center)
+            grip1 = (center + intersect_pt_1) // 2
+            grip2 = (center + intersect_pt_2) // 2
+
+            cv.circle(img, tuple(grip1.astype(np.int64)), 5, (255, 0, 255), -1)
+            cv.circle(img, tuple(grip2.astype(np.int64)), 5, (255, 0, 255), -1)
+        else:
+            grip1 = None
+            grip2 = None
+
+        return img, grip1, grip2, contour_mask, angle_rad, area
+
+    @staticmethod
+    def draw_line(im, angle_rad, point, *args, **kwargs):
+        x, y = point
+        m = np.tan(angle_rad)
+        x1 = 0
+        x2 = im.shape[1]
+        y1 = m * (x1 - x) + y
+        y2 = m * (x2 - x) + y
+        cv.line(im, (x1, int(y1)), (x2, int(y2)), *args, **kwargs)
+
+    def is_stopped(self):
+        return self._stopped
 
     def _on_stopped(self):
         self._http_interface.stop()

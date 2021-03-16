@@ -19,6 +19,7 @@ class RobotHttpInterface:
         :param robot_model: model of the robot (see RobotModel enum for reference).
         :param address: controller address, which can be an URL or an IP address. Defaults to "127.0.0.1" (localhost).
         """
+        self.robot_model = robot_model
         self._movement_url = "http://" + address + ":" + str(robot_model.get_movement_controller_port())
         try:
             self._gripper_url = "http://" + address + ":" + str(robot_model.get_gripper_controller_port())

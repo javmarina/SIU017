@@ -58,10 +58,9 @@ class Application(tk.Frame):
             address=self.ip_field.get(),
             robot_model=Application.leader_model,
             adq_rate=Application.fps)
-        self.follower_pipeline = FollowerPipeline(
+        self.follower_pipeline = LeaderPipeline(
             address=self.ip_field.get(),
             robot_model=Application.follower_model,
-            leader=Application.leader_model,
             adq_rate=Application.fps)
 
         self.leader_pipeline.start()
