@@ -17,17 +17,18 @@ from utils.CubicPath import CubicPath
 
 
 class ImagePipeline(StraightPipeline):
-    def __init__(self, address, robot_model: RobotModel, adq_rate):
+    def __init__(self, address: str, robot_model: RobotModel, adq_rate):
         if address == "localhost":
             # Avoid DNS resolve for localhost
             # TODO: cache DNS resolution for other IPs?
             address = "127.0.0.1"
+        http_interface = RobotHttpInterface(robot_model, address)
         super().__init__([
             FiringStage(adq_rate),
-            AdqStage(address, robot_model),
+            AdqStage(http_interface),
             ImageConversionStage(),
             ObjectDetectionStage(),
-            PositionControlStage(address, robot_model)
+            PositionControlStage(http_interface)
         ])
 
     def get_last_frame(self):
@@ -45,9 +46,9 @@ class FiringStage(Producer):
 
 
 class AdqStage(PipelineStage):
-    def __init__(self, address, robot_model: RobotModel):
+    def __init__(self, http_interface: RobotHttpInterface):
         super().__init__()
-        self._http_interface = RobotHttpInterface(robot_model, address)
+        self._http_interface = http_interface
 
     def _process(self, _):
         return self._http_interface.get_image()
@@ -109,9 +110,9 @@ class PositionControlStage(Consumer):
 
     compute_area_z_relationship = False
 
-    def __init__(self, address, robot_model: RobotModel, z_speed_profile: CubicPath = None):
+    def __init__(self, http_interface: RobotHttpInterface, z_speed_profile: CubicPath = None):
         super().__init__()
-        self._http_interface = RobotHttpInterface(robot_model, address)
+        self._http_interface = http_interface
 
         if z_speed_profile is None:
             # Initialize with default values

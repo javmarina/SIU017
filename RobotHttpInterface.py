@@ -13,7 +13,7 @@ class RobotHttpInterface:
 
     lock = Lock()
 
-    def __init__(self, robot_model: RobotModel, address="127.0.0.1"):
+    def __init__(self, robot_model: RobotModel, address: str = "127.0.0.1"):
         """
         Create a HTTP robot controller.
         :param robot_model: model of the robot (see RobotModel enum for reference).
