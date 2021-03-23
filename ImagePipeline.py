@@ -51,13 +51,13 @@ class AdqStage(PipelineStage):
         self._http_interface = http_interface
 
     def _process(self, _):
-        return self._http_interface.get_image()
+        return self._http_interface.get_image_udp(width=640, quality=90)
 
 
 class ImageConversionStage(PipelineStage):
     def _process(self, in_data):
-        response_content = in_data
-        return np.array(Image.open(io.BytesIO(response_content)))
+        datagramFromClient = in_data
+        return np.array(Image.open(io.BytesIO(datagramFromClient)))
 
 
 class ObjectDetectionStage(PipelineStage):

@@ -1,3 +1,4 @@
+import socket
 from threading import Lock
 from urllib import request
 
@@ -25,7 +26,10 @@ class RobotHttpInterface:
         except ValueError:
             # No gripper available in this robot
             self._gripper_url = None
+
         self._camera_url = "http://" + address + ":" + str(robot_model.get_camera_port())
+        self._udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._camera_udp_address = (address, robot_model.get_camera_port())
 
     def stop(self):
         """
@@ -200,10 +204,26 @@ class RobotHttpInterface:
     def get_image(self):
         """
         Send petition to download camera image.
-        :return: received response content
+        :return: received response content (bytes).
         """
         with request.urlopen(self._camera_url) as f:
             return f.read()
+
+    def get_image_udp(self, width: int = 640, quality: int = 90):
+        """
+        Send petition to download camera image via UDP.
+        :param width: desired width of image in pixels. Height will be computed automatically.
+        :param quality: quality percentage, integer from 0 to 100.
+        :return: received response content (bytes).
+        """
+        if quality > 90:
+            quality = 90
+        if quality < 0:
+            quality = 0
+        message = "/setparams?width={:d}&quality={:d}".format(width, quality)
+        self._udp_socket.sendto(message.encode(), self._camera_udp_address)
+        datagramFromClient, _ = self._udp_socket.recvfrom(65000)
+        return datagramFromClient
 
 # if __name__ == "__main__":
 #     robot_controller = RobotHttpInterface(8000)
