@@ -1,4 +1,5 @@
 from threading import Lock
+from urllib import request
 
 import requests
 
@@ -24,6 +25,7 @@ class RobotHttpInterface:
         except ValueError:
             # No gripper available in this robot
             self._gripper_url = None
+        self._camera_url = "http://" + address + ":" + str(robot_model.get_camera_port())
 
     def stop(self):
         """
@@ -194,6 +196,14 @@ class RobotHttpInterface:
         r = requests.get(self._gripper_url + command)
         RobotHttpInterface.lock.release()
         return r.status_code == 200
+
+    def get_image(self):
+        """
+        Send petition to download camera image.
+        :return: received response content
+        """
+        with request.urlopen(self._camera_url) as f:
+            return f.read()
 
 # if __name__ == "__main__":
 #     robot_controller = RobotHttpInterface(8000)

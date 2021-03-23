@@ -5,7 +5,6 @@ import time
 
 import cv2 as cv
 import numpy as np
-import requests
 from PIL import Image
 from scipy.interpolate import interp1d
 from scipy.signal import savgol_filter
@@ -24,8 +23,8 @@ class ImagePipeline(StraightPipeline):
             # TODO: cache DNS resolution for other IPs?
             address = "127.0.0.1"
         super().__init__([
-            FiringStage(adq_rate, address, robot_model),
-            AdqStage(),
+            FiringStage(adq_rate),
+            AdqStage(address, robot_model),
             ImageConversionStage(),
             ObjectDetectionStage(),
             PositionControlStage(address, robot_model)
@@ -36,30 +35,22 @@ class ImagePipeline(StraightPipeline):
 
 
 class FiringStage(Producer):
-    def __init__(self, adq_rate, address, robot_model: RobotModel):
+    def __init__(self, adq_rate):
         super().__init__()
         self._sleep_seconds = 1.0 / adq_rate
-        self._url = "http://" + address + ":" + str(robot_model.get_camera_port())
 
     def _produce(self):
         time.sleep(self._sleep_seconds)
-        return self._url
+        return ()
 
 
 class AdqStage(PipelineStage):
-    # Whether to use the low-level urllib library instead of requests when fetching the camera image
-    # urllib takes ~58 ms to download the image, while requests spends ~90 ms (~75 ms when verify=False)
-    use_urllib = True
+    def __init__(self, address, robot_model: RobotModel):
+        super().__init__()
+        self._http_interface = RobotHttpInterface(robot_model, address)
 
-    def _process(self, in_data):
-        url = in_data
-        if AdqStage.use_urllib:
-            from urllib import request
-            with request.urlopen(url) as f:
-                return f.read()
-        else:
-            response = requests.get(url, verify=False)
-            return response.content
+    def _process(self, _):
+        return self._http_interface.get_image()
 
 
 class ImageConversionStage(PipelineStage):
