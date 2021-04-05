@@ -16,10 +16,11 @@ if __name__ == "__main__":
     print("UDP target port: {:d}".format(UDP_PORT))
 
     bufferSize = 60000
+    width = 640
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP socket
 
     for x in range(91):
-        msg = "/SETPARAMS?WIDTH=640&QUALITY={:d}".format(x)
+        msg = "/setparams?width={:d}&quality={:d}".format(width, x)
         MESSAGE = msg.encode()
         # print("message: %s" % MESSAGE)
 
@@ -28,7 +29,7 @@ if __name__ == "__main__":
         datagramFromClient, datagramSourceAddress = sock.recvfrom(bufferSize)
         print(len(datagramFromClient))
 
-        image = np.asarray(bytearray(datagramFromClient), dtype="uint8")
+        image = np.asarray(bytearray(datagramFromClient), dtype=np.uint8)
         image = cv.imdecode(image, cv.IMREAD_COLOR)
 
         cv.putText(
