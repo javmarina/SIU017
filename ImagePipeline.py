@@ -46,18 +46,20 @@ class FiringStage(Producer):
 
 
 class AdqStage(PipelineStage):
-    def __init__(self, http_interface: RobotHttpInterface):
+    def __init__(self, http_interface: RobotHttpInterface, use_udp: bool = True):
         super().__init__()
         self._http_interface = http_interface
+        self._use_udp = use_udp
 
     def _process(self, _):
-        return self._http_interface.get_image_udp(width=640, quality=90)
+        return (self._http_interface.get_image_udp(width=640, quality=10), True) if self._use_udp\
+            else (self._http_interface.get_image(), False)
 
 
 class ImageConversionStage(PipelineStage):
     def _process(self, in_data):
-        datagramFromClient = in_data
-        return np.array(Image.open(io.BytesIO(datagramFromClient)))
+        response_content, udp = in_data
+        return np.array(Image.open(io.BytesIO(response_content))), udp
 
 
 class ObjectDetectionStage(PipelineStage):
@@ -67,22 +69,14 @@ class ObjectDetectionStage(PipelineStage):
         return np.sqrt(1 - (ma / MA) ** 2)
 
     def _process(self, in_data):
-        img = in_data
+        img, udp = in_data
 
         # Gaussian filter
-        filtered = cv.GaussianBlur(img, (9, 9), 0)
+        filtered = cv.GaussianBlur(img, (9, 9), 1)
 
         # Saturation thresholding (with red color elimination)
         hsv = cv.cvtColor(filtered, cv.COLOR_RGB2HSV)
-        sat = hsv[:, :, 1]
-        max_sat = np.max(sat)
-        mean_sat = np.mean(sat)
-        th_sat = (max_sat + mean_sat) / 2 - 15
-        bw = cv.inRange(hsv, (10, th_sat, 0), (180, 255, 255))  # Remove H<10 means red color from lasers won't appear
-
-        # Opening
-        kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
-        bw = cv.morphologyEx(bw, cv.MORPH_OPEN, kernel)
+        bw = cv.inRange(hsv, (25, 84, 76), (180, 211, 255))
 
         # Close
         kernel = cv.getStructuringElement(cv.MORPH_RECT, (7, 7))
@@ -90,7 +84,7 @@ class ObjectDetectionStage(PipelineStage):
 
         # Find & filter contours
         contours, _ = cv.findContours(bw, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
-        big_contours = filter(lambda cnt: cv.contourArea(cnt) > 200, contours)
+        big_contours = filter(lambda cnt: cv.contourArea(cnt) > 50, contours)
         tuples = map(lambda cnt: (cnt, self._get_contour_eccentricity(cnt)), big_contours)
         higher_095 = list(filter(lambda tupl: tupl[1] >= 0.95, tuples))
 
