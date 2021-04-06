@@ -301,7 +301,7 @@ def analyze():
 
     hits = filtered_results >= 0.5
 
-    # Average IOB vs. depth (for each width)
+    # Average IoU vs. depth (for each width)
     selected_qualities = [90, 75, 50, 25]
     for selected_quality in selected_qualities:
         i = qualities.index(selected_quality)
@@ -309,35 +309,35 @@ def analyze():
         plt.plot(depths, partial)
         plt.legend(["{:d}x{:d}".format(width, height) for height, width, _ in real_shapes])
         plt.xlabel("Depth (m)")
-        plt.ylabel("Average IOB (%)")
+        plt.ylabel("Average IoU (%)")
         plt.ylim([0, 100])
         plt.grid()
-        plt.title("Average IOB vs. depth (quality = {:d}%)".format(selected_quality))
-        print_figure("iob_vs_depth_q{:d}".format(selected_quality))
+        plt.title("Average IoU vs. depth (quality = {:d}%)".format(selected_quality))
+        print_figure("iou_vs_depth_q{:d}".format(selected_quality))
 
-    # IOB vs. depth for each selected quality (for each width)
+    # IoU vs. depth for each selected quality (for each width)
     selected_qualities = [90, 75, 50, 25]
     for i, (width, height, _) in enumerate(real_shapes):
         partial = 100 * filtered_results[:, i, [qualities.index(q) for q in selected_qualities]]
         plt.plot(depths, partial)
         plt.legend(["{:d}%".format(quality) for quality in selected_qualities])
         plt.xlabel("Depth (m)")
-        plt.ylabel("IOB (%)")
+        plt.ylabel("IoU (%)")
         plt.ylim([0, 100])
         plt.grid()
         plt.title("{:d}x{:d}".format(width, height))
-        print_figure("iob_vs_depth_{:d}x{:d}".format(width, height))
+        print_figure("iou_vs_depth_{:d}x{:d}".format(width, height))
 
-    # Average IOB over all depths, vs. quality (for each width)
+    # Average IoU over all depths, vs. quality (for each width)
     for i, (width, height, _) in enumerate(real_shapes):
         partial = 100*np.mean(filtered_results[:, i, :], 0)
         plt.plot(qualities, partial)
         plt.title("{:d}x{:d}".format(width, height))
         plt.xlabel("Quality (%)")
-        plt.ylabel("Average IOB (%)")
+        plt.ylabel("Average IoU (%)")
         plt.ylim([0, 100])
         plt.grid()
-        print_figure("avg_iob_vs_depth_{:d}x{:d}".format(width, height))
+        print_figure("avg_iou_vs_depth_{:d}x{:d}".format(width, height))
 
     # Average accuracy vs. depth, over qualities (for each width)
     partial = 100*np.mean(hits, 2)
