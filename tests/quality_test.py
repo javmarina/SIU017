@@ -157,6 +157,7 @@ def main():
         real_shapes.append(None)
     results = []
     times = []
+    sizes = []
 
     count = 0
     depths = []
@@ -164,15 +165,19 @@ def main():
     while True:
         partial_results = np.zeros((len(widths), len(qualities)))
         partial_times = np.zeros((len(widths), len(qualities)))
+        partial_sizes = np.zeros((len(widths), len(qualities)))
 
         for i, width in enumerate(tqdm(widths)):
             for j, quality in enumerate(qualities):
 
                 dt = 0
                 t = time.time()
-                im = np.array(Image.open(io.BytesIO(robot_http_interface.get_image_udp(width, quality))))
+                content = robot_http_interface.get_image_udp(width, quality)
+                im = np.array(Image.open(io.BytesIO(content)))
                 dt += time.time() - t
                 im_full = np.array(Image.open(io.BytesIO(robot_http_interface.get_image())))
+
+                partial_sizes[i, j] = len(content)
 
                 if real_shapes[i] is None:
                     real_shapes[i] = im.shape
@@ -238,6 +243,7 @@ def main():
         if not finished:
             results.append(partial_results.tolist())
             times.append(partial_times.tolist())
+            sizes.append(partial_sizes.tolist())
             count += 1
 
         _, _, z = robot_http_interface.get_position()
@@ -256,6 +262,7 @@ def main():
     dict_results = {
         "results": results,
         "times": times,
+        "sizes": sizes,
         "depths": depths,
         "widths": widths,
         "real_shapes": real_shapes,
@@ -289,6 +296,7 @@ def analyze():
 
     results = np.array(dict_results["results"])
     times = np.array(dict_results["times"])
+    sizes = np.array(dict_results["sizes"])
     depths = dict_results["depths"]
     widths = dict_results["widths"]
     real_shapes = dict_results["real_shapes"]
@@ -359,6 +367,16 @@ def analyze():
     plt.ylabel("Average processing time (ms)")
     plt.grid()
     print_figure("avg_time_vs_depth")
+
+    # Average size (bytes) vs. resolution and quality
+    partial = 1000*np.mean(sizes, 0).transpose()/(1024**2)
+    plt.plot(qualities, partial)
+    plt.title("Average size (MB)")
+    plt.legend(["{:d}x{:d}".format(width, height) for height, width, _ in real_shapes])
+    plt.xlabel("Quality (%)")
+    plt.ylabel("Average size (MB)")
+    plt.grid()
+    print_figure("avg_bytes_vs_depth")
 
 
 if __name__ == "__main__":
