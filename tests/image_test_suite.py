@@ -133,7 +133,7 @@ if __name__ == "__main__":
         files = [input_path + "critical" + str(num) + ".jpg"
                  for num in [66, 71, 76, 77, 78, 80, 84, 85, 90, 101]]
     else:
-        input_path = "tests/im-tests/"
+        input_path = "im-tests/"
         files = glob.glob(input_path + "test*.jpg")
 
     if os.path.exists(input_path + "out/"):
